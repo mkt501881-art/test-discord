@@ -68,6 +68,17 @@ client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return
 
   if (interaction.commandName === "set") {
+
+      // ✅ ロールチェック（ここ！！）
+  const allowedRoleId = "1502839785834811422"
+
+  if (!interaction.member.roles.cache.has(allowedRoleId)) {
+    return interaction.reply({
+      content: "❌ このコマンドを使う権限がありません",
+      ephemeral: true
+    })
+  }
+
     const name = interaction.options.getString("name")
     const status = interaction.options.getString("status")
     const location = interaction.options.getString("location")
