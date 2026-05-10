@@ -139,13 +139,34 @@ client.on("interactionCreate", async (interaction) => {
 
 // ===== Web API（貸し出し申請）=====
 app.post("/request", async (req, res) => {
-  const { name, user } = req.body
+  const { name, user, location, owner } = req.body
 
-  const channel = await client.channels.fetch("1502851078700535869")
+  try {
+    const channel = await client.channels.fetch("チャンネルID")
 
-  await channel.send(`📦貸し出し申請\n${name}\nユーザー:${user}`)
+    await channel.send({
+      embeds: [
+        {
+          title: `📦 ${name}`,
+          color: 0x00cc66,
+          fields: [
+            { name: "ユーザー", value: user, inline: true },
+            { name: "出品者", value: owner ?? "不明", inline: true },
+            { name: "保管場所", value: location ?? "不明", inline: false }
+          ],
+          footer: {
+            text: new Date().toLocaleString()
+          }
+        }
+      ]
+    })
 
-  res.json({ ok: true })
+    res.json({ ok: true })
+
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: err.message })
+  }
 })
 
 app.listen(3000, () => console.log("✅ API起動"))
