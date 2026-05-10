@@ -139,7 +139,7 @@ client.on("interactionCreate", async (interaction) => {
 app.post("/request", async (req, res) => {
   const { name, user } = req.body
 
-  const channel = await client.channels.fetch("ここにチャンネルID")
+  const channel = await client.channels.fetch("1502851078700535869")
 
   await channel.send(`📦貸し出し申請\n${name}\nユーザー:${user}`)
 
