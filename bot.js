@@ -155,8 +155,11 @@ app.post("/request", async (req, res) => {
             { name: "保管場所", value: location ?? "不明", inline: false }
           ],
           footer: {
-            text: new Date().toLocaleString()
-          }
+  text: new Date().toLocaleString("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    hour12: false
+  })
+}
         }
       ]
     })
