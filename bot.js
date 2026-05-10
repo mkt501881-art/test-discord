@@ -55,6 +55,19 @@ const commands = [
        .setDescription("出品者")
        .setRequired(false)
     )
+
+  .addStringOption(o =>
+  o.setName("genre")
+   .setDescription("ジャンル")
+   .setRequired(false)
+   .addChoices(
+     { name: "マンガ", value: "マンガ" },
+     { name: "ライトノベル", value: "ライトノベル" },
+     { name: "小説", value: "小説" },
+     { name: "その他", value: "その他" }
+   )
+)
+  
 ].map(c => c.toJSON())
 
 const rest = new REST({ version: "10" }).setToken(TOKEN)
@@ -93,6 +106,7 @@ client.on("interactionCreate", async (interaction) => {
     const status = interaction.options.getString("status")
     const location = interaction.options.getString("location")
     const owner = interaction.options.getString("owner")
+    const genre = interaction.options.getString("genre")  // ← 追加
 
     try {
       const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
@@ -109,7 +123,9 @@ client.on("interactionCreate", async (interaction) => {
             ...item,
             status,
             location: location ?? item.location,
-            owner: owner ?? item.owner
+            owner: owner ?? item.owner,
+            genre: genre ?? item.genre   // ← 追加 ✅
+
           }
         }
         return item
