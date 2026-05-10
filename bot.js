@@ -3,8 +3,10 @@ require("dotenv").config()
 const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require("discord.js")
 const fetch = require("node-fetch")
 const express = require("express")
+const cors = require("cors")
 
 const app = express()
+app.use(cors())
 app.use(express.json())
 
 // ===== 設定 =====
