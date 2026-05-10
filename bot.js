@@ -142,7 +142,7 @@ app.post("/request", async (req, res) => {
   const { name, user, location, owner } = req.body
 
   try {
-    const channel = await client.channels.fetch("チャンネルID")
+    const channel = await client.channels.fetch("1502851078700535869")
 
     await channel.send({
       embeds: [
