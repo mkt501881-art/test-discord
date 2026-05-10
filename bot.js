@@ -25,15 +25,34 @@ const commands = [
   new SlashCommandBuilder()
     .setName("set")
     .setDescription("ステータス更新")
-    .addStringOption(o => o.setName("name").setRequired(true))
-    .addStringOption(o => o.setName("status").setRequired(true)
-      .addChoices(
-        { name: "貸し出し可能", value: "available" },
-        { name: "貸し出し中", value: "using" }
-      )
+
+    .addStringOption(o =>
+      o.setName("name")
+       .setDescription("文庫名")
+       .setRequired(true)
     )
-    .addStringOption(o => o.setName("location").setRequired(false))
-    .addStringOption(o => o.setName("owner").setRequired(false))
+
+    .addStringOption(o =>
+      o.setName("status")
+       .setDescription("状態")
+       .setRequired(true)
+       .addChoices(
+         { name: "貸し出し可能", value: "available" },
+         { name: "貸し出し中", value: "using" }
+       )
+    )
+
+    .addStringOption(o =>
+      o.setName("location")
+       .setDescription("保管場所")
+       .setRequired(false)
+    )
+
+    .addStringOption(o =>
+      o.setName("owner")
+       .setDescription("出品者")
+       .setRequired(false)
+    )
 ].map(c => c.toJSON())
 
 const rest = new REST({ version: "10" }).setToken(TOKEN)
