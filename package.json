@@ -7,11 +7,11 @@
   },
   "dependencies": {
     "discord.js": "^14.26.4",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "node-fetch": "^2.7.0"
   },
   "description": "",
-  "devDependencies": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mkt501881-art/test-discord.git"
