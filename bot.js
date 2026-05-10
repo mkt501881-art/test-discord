@@ -181,7 +181,7 @@ app.post("/request", async (req, res) => {
             { name: "保管場所", value: location ?? "不明", inline: false },
 
             // ✅ 追加情報
-            { name: "クラス", value: className || "未入力", inline: true },
+            { name: "所属", value: className || "未入力", inline: true },
             { name: "出席番号", value: number || "未入力", inline: true },
             { name: "名前", value: studentName || "未入力", inline: false },
           ],
