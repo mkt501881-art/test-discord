@@ -165,7 +165,7 @@ app.post("/request", async (req, res) => {
   } = req.body
 
   try {
-    const channel = await client.channels.fetch("1502851078700535869")
+    const channel = await client.channels.fetch("1503222413096128633")
 
     await channel.send({
       embeds: [
