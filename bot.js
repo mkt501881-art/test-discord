@@ -26,7 +26,7 @@ const commands = [
   // ===== set =====
   new SlashCommandBuilder(),
     .setName("set")
-    .setDescription("ステータス更新")
+    .setDescription("ステータス更新"),
     .addStringOption(o => o.setName("name").setRequired(true))
     .addStringOption(o =>
       o.setName("status").setRequired(true)
@@ -50,7 +50,7 @@ const commands = [
   // ===== add =====
 new SlashCommandBuilder(),
   .setName("add")
-  .setDescription("本を追加")
+  .setDescription("本を追加"),
 
   .addStringOption(o =>
     o.setName("name")
@@ -85,7 +85,7 @@ new SlashCommandBuilder(),
   // ===== delete =====
 new SlashCommandBuilder(),
   .setName("delete")
-  .setDescription("本を削除")
+  .setDescription("本を削除"),
 
   .addStringOption(o =>
     o.setName("name")
