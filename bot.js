@@ -24,21 +24,39 @@ const client = new Client({
 const commands = [
 
   // ===== set =====
-  new SlashCommandBuilder(),
+  new SlashCommandBuilder()
     .setName("set")
-    .setDescription("ステータス更新"),
-    .addStringOption(o => o.setName("name").setRequired(true))
+    .setDescription("ステータス更新")
+
     .addStringOption(o =>
-      o.setName("status").setRequired(true)
-      .addChoices(
-        { name: "貸し出し可能", value: "available" },
-        { name: "貸し出し中", value: "using" }
-      )
+      o.setName("name")
+       .setDescription("文庫名")
+       .setRequired(true)
     )
-    .addStringOption(o => o.setName("location"))
-    .addStringOption(o => o.setName("owner"))
+
+    .addStringOption(o =>
+      o.setName("status")
+       .setDescription("状態")
+       .setRequired(true)
+       .addChoices(
+         { name: "貸し出し可能", value: "available" },
+         { name: "貸し出し中", value: "using" }
+       )
+    )
+
+    .addStringOption(o =>
+      o.setName("location")
+       .setDescription("保管場所")
+    )
+
+    .addStringOption(o =>
+      o.setName("owner")
+       .setDescription("出品者")
+    )
+
     .addStringOption(o =>
       o.setName("genre")
+       .setDescription("ジャンル")
        .addChoices(
          { name: "マンガ", value: "マンガ" },
          { name: "ライトノベル", value: "ライトノベル" },
@@ -48,50 +66,50 @@ const commands = [
     ),
 
   // ===== add =====
-new SlashCommandBuilder(),
-  .setName("add")
-  .setDescription("本を追加"),
+  new SlashCommandBuilder()
+    .setName("add")
+    .setDescription("本を追加")
 
-  .addStringOption(o =>
-    o.setName("name")
-     .setDescription("本の名前")   // ← 追加 ✅
-     .setRequired(true)
-  )
+    .addStringOption(o =>
+      o.setName("name")
+       .setDescription("本の名前")
+       .setRequired(true)
+    )
 
-  .addStringOption(o =>
-    o.setName("genre")
-     .setDescription("ジャンル")   // ← 追加 ✅
-     .setRequired(true)
-     .addChoices(
-       { name: "マンガ", value: "マンガ" },
-       { name: "ライトノベル", value: "ライトノベル" },
-       { name: "小説", value: "小説" },
-       { name: "その他", value: "その他" }
-     )
-  )
+    .addStringOption(o =>
+      o.setName("genre")
+       .setDescription("ジャンル")
+       .setRequired(true)
+       .addChoices(
+         { name: "マンガ", value: "マンガ" },
+         { name: "ライトノベル", value: "ライトノベル" },
+         { name: "小説", value: "小説" },
+         { name: "その他", value: "その他" }
+       )
+    )
 
-  .addStringOption(o =>
-    o.setName("location")
-     .setDescription("保管場所")   // ← 追加 ✅
-     .setRequired(true)
-  )
+    .addStringOption(o =>
+      o.setName("location")
+       .setDescription("保管場所")
+       .setRequired(true)
+    )
 
-  .addStringOption(o =>
-    o.setName("owner")
-     .setDescription("出品者")   // ← 追加 ✅
-     .setRequired(true)
-  )
-  
+    .addStringOption(o =>
+      o.setName("owner")
+       .setDescription("出品者")
+       .setRequired(true)
+    ),
+
   // ===== delete =====
-new SlashCommandBuilder(),
-  .setName("delete")
-  .setDescription("本を削除"),
+  new SlashCommandBuilder()
+    .setName("delete")
+    .setDescription("本を削除")
 
-  .addStringOption(o =>
-    o.setName("name")
-     .setDescription("削除する本の名前")  // ← 追加 ✅
-     .setRequired(true)
-  )
+    .addStringOption(o =>
+      o.setName("name")
+       .setDescription("削除する本の名前")
+       .setRequired(true)
+    )
 
 ].map(c => c.toJSON())
 
