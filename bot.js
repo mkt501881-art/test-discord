@@ -24,7 +24,7 @@ const client = new Client({
 const commands = [
 
   // ===== set =====
-  new SlashCommandBuilder()
+  new SlashCommandBuilder(),
     .setName("set")
     .setDescription("ステータス更新")
     .addStringOption(o => o.setName("name").setRequired(true))
@@ -48,7 +48,7 @@ const commands = [
     ),
 
   // ===== add =====
-new SlashCommandBuilder()
+new SlashCommandBuilder(),
   .setName("add")
   .setDescription("本を追加")
 
@@ -83,7 +83,7 @@ new SlashCommandBuilder()
   )
   
   // ===== delete =====
-new SlashCommandBuilder()
+new SlashCommandBuilder(),
   .setName("delete")
   .setDescription("本を削除")
 
