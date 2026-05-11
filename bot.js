@@ -240,7 +240,7 @@ app.post("/cancel", async (req, res) => {
   const updated = content.map(item => {
     if (item.name === name && item.borrower?.email === user) {
       studentName = item.borrower?.name || ""
-      const className = item.borrower?.className || ""
+      className = item.borrower?.className || ""
       return {
         ...item,
         status: "available",
