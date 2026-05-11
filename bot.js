@@ -168,7 +168,8 @@ app.post("/request", async (req, res) => {
         status: "pending",
         borrower: {
           email: user,
-          name: studentName
+          name: studentName,
+          className: className
         }
       }
     }
@@ -189,9 +190,34 @@ app.post("/request", async (req, res) => {
   })
 
   const ch = await client.channels.fetch(REQUEST_CHANNEL_ID)
-  await ch.send(`📦申請: ${name} / ${studentName}`)
+await channel.send({
+  embeds: [{
+    title: `📦 ${name}`,
+    description: "貸し出し申請",
+    color: 0x00cc66,
 
-  await sendLog(`📦 ${name} | ${studentName}`)
+    fields: [
+      {
+        name: "利用者",
+        value: `${studentName}（${className} ${number}）`
+      },
+      {
+        name: "メール",
+        value: user
+      },
+      {
+        name: "出品者 / 保管場所",
+        value: `${owner} / ${location}`
+      }
+    ],
+
+    footer: {
+      text: new Date().toLocaleString("ja-JP")
+    }
+  }]
+})
+
+  await sendLog(`申請 ${name} | ${studentName} ${className}`)
 
   res.json({ ok: true })
 })
@@ -212,7 +238,8 @@ app.post("/cancel", async (req, res) => {
 
   const updated = content.map(item => {
     if (item.name === name && item.borrower?.email === user) {
-      studentName = item.borrower?.name
+      studentName = item.borrower?.name || ""
+      const className = item.borrower?.className || ""
       return {
         ...item,
         status: "available",
@@ -240,7 +267,7 @@ app.post("/cancel", async (req, res) => {
   await ch.send(`↩取消: ${name} / ${studentName}`)
 
   // ✅ ログ
-  await sendLog(`↩ ${name} | ${studentName}`)
+  await sendLog(`申請撤回 ${name} | ${studentName} ${className}`)
 
   res.json({ ok: true })
 })
