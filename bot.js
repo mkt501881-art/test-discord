@@ -235,6 +235,7 @@ app.post("/cancel", async (req, res) => {
   const content = JSON.parse(Buffer.from(data.content, "base64").toString())
 
   let studentName = ""
+  let className = ""
 
   const updated = content.map(item => {
     if (item.name === name && item.borrower?.email === user) {
