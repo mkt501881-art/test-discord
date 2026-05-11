@@ -48,30 +48,50 @@ const commands = [
     ),
 
   // ===== add =====
-  new SlashCommandBuilder()
-    .setName("add")
-    .setDescription("本を追加")
-    .addStringOption(o => o.setName("name").setRequired(true))
-    .addStringOption(o =>
-      o.setName("genre").setRequired(true)
-       .addChoices(
-         { name: "マンガ", value: "マンガ" },
-         { name: "ライトノベル", value: "ライトノベル" },
-         { name: "小説", value: "小説" },
-         { name: "その他", value: "その他" }
-       )
-    )
-    .addStringOption(o => o.setName("location").setRequired(true))
-    .addStringOption(o => o.setName("owner").setRequired(true)),
+new SlashCommandBuilder()
+  .setName("add")
+  .setDescription("本を追加")
 
+  .addStringOption(o =>
+    o.setName("name")
+     .setDescription("本の名前")   // ← 追加 ✅
+     .setRequired(true)
+  )
+
+  .addStringOption(o =>
+    o.setName("genre")
+     .setDescription("ジャンル")   // ← 追加 ✅
+     .setRequired(true)
+     .addChoices(
+       { name: "マンガ", value: "マンガ" },
+       { name: "ライトノベル", value: "ライトノベル" },
+       { name: "小説", value: "小説" },
+       { name: "その他", value: "その他" }
+     )
+  )
+
+  .addStringOption(o =>
+    o.setName("location")
+     .setDescription("保管場所")   // ← 追加 ✅
+     .setRequired(true)
+  )
+
+  .addStringOption(o =>
+    o.setName("owner")
+     .setDescription("出品者")   // ← 追加 ✅
+     .setRequired(true)
+  )
+  
   // ===== delete =====
-  new SlashCommandBuilder()
-    .setName("delete")
-    .setDescription("本を削除")
-    .addStringOption(o =>
-      o.setName("name")
-       .setRequired(true)
-    )
+new SlashCommandBuilder()
+  .setName("delete")
+  .setDescription("本を削除")
+
+  .addStringOption(o =>
+    o.setName("name")
+     .setDescription("削除する本の名前")  // ← 追加 ✅
+     .setRequired(true)
+  )
 
 ].map(c => c.toJSON())
 
