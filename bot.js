@@ -9,6 +9,7 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
+// ===== 設定 =====
 const TOKEN = process.env.DISCORD_TOKEN
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN
 const CLIENT_ID = process.env.CLIENT_ID
@@ -16,11 +17,27 @@ const CLIENT_ID = process.env.CLIENT_ID
 const REPO = "mkt501881-art/status"
 const FILE_PATH = "status.json"
 
+// ✅ チャンネル
+const REQUEST_CHANNEL_ID = "1502851078700535869" // 申請用
+const LOG_CHANNEL_ID = "1503222413096128633" // ←ここ重要
+
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 })
 
-// ✅ コマンド
+
+// ===== ✅ ログ関数 =====
+async function sendLog(message) {
+  try {
+    const channel = await client.channels.fetch(LOG_CHANNEL_ID)
+    await channel.send({ content: message })
+  } catch (err) {
+    console.error("ログ送信エラー:", err)
+  }
+}
+
+
+// ===== Slashコマンド =====
 const commands = [
 
   // ===== set =====
@@ -29,29 +46,23 @@ const commands = [
     .setDescription("ステータス更新")
 
     .addStringOption(o =>
-      o.setName("name")
-       .setDescription("文庫名")
-       .setRequired(true)
+      o.setName("name").setDescription("文庫名").setRequired(true)
     )
 
     .addStringOption(o =>
-      o.setName("status")
-       .setDescription("状態")
-       .setRequired(true)
-       .addChoices(
-         { name: "貸し出し可能", value: "available" },
-         { name: "貸し出し中", value: "using" }
-       )
+      o.setName("status").setDescription("状態").setRequired(true)
+      .addChoices(
+        { name: "貸し出し可能", value: "available" },
+        { name: "貸し出し中", value: "using" }
+      )
     )
 
     .addStringOption(o =>
-      o.setName("location")
-       .setDescription("保管場所")
+      o.setName("location").setDescription("保管場所")
     )
 
     .addStringOption(o =>
-      o.setName("owner")
-       .setDescription("出品者")
+      o.setName("owner").setDescription("出品者")
     )
 
     .addStringOption(o =>
@@ -71,33 +82,25 @@ const commands = [
     .setDescription("本を追加")
 
     .addStringOption(o =>
-      o.setName("name")
-       .setDescription("本の名前")
-       .setRequired(true)
+      o.setName("name").setDescription("本の名前").setRequired(true)
     )
 
     .addStringOption(o =>
-      o.setName("genre")
-       .setDescription("ジャンル")
-       .setRequired(true)
-       .addChoices(
-         { name: "マンガ", value: "マンガ" },
-         { name: "ライトノベル", value: "ライトノベル" },
-         { name: "小説", value: "小説" },
-         { name: "その他", value: "その他" }
-       )
+      o.setName("genre").setDescription("ジャンル").setRequired(true)
+      .addChoices(
+        { name: "マンガ", value: "マンガ" },
+        { name: "ライトノベル", value: "ライトノベル" },
+        { name: "小説", value: "小説" },
+        { name: "その他", value: "その他" }
+      )
     )
 
     .addStringOption(o =>
-      o.setName("location")
-       .setDescription("保管場所")
-       .setRequired(true)
+      o.setName("location").setDescription("保管場所").setRequired(true)
     )
 
     .addStringOption(o =>
-      o.setName("owner")
-       .setDescription("出品者")
-       .setRequired(true)
+      o.setName("owner").setDescription("出品者").setRequired(true)
     ),
 
   // ===== delete =====
@@ -116,10 +119,7 @@ const commands = [
 const rest = new REST({ version: "10" }).setToken(TOKEN)
 
 async function registerCommands() {
-  await rest.put(
-    Routes.applicationCommands(CLIENT_ID),
-    { body: commands }
-  )
+  await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands })
   console.log("✅ コマンド登録完了")
 }
 
@@ -129,7 +129,7 @@ client.once("ready", () => {
 })
 
 
-// ✅ 共通：権限チェック
+// ===== 権限チェック =====
 function checkRole(interaction) {
   const allowedRoleId = "1502839785834811422"
   return interaction.member.roles.cache.has(allowedRoleId)
@@ -161,21 +161,13 @@ client.on("interactionCreate", async (interaction) => {
       })
 
       const data = await res.json()
-
       const content = JSON.parse(Buffer.from(data.content, "base64").toString())
 
-      const updated = content.map(item => {
-        if (item.name === name) {
-          return {
-            ...item,
-            status,
-            location: location ?? item.location,
-            owner: owner ?? item.owner,
-            genre: genre ?? item.genre
-          }
-        }
-        return item
-      })
+      const updated = content.map(item =>
+        item.name === name
+          ? { ...item, status, location: location ?? item.location, owner: owner ?? item.owner, genre: genre ?? item.genre }
+          : item
+      )
 
       await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
         method: "PUT",
@@ -191,6 +183,8 @@ client.on("interactionCreate", async (interaction) => {
       })
 
       await interaction.reply(`✅ ${name} を更新しました`)
+      await sendLog(`✏ 更新: ${name} → ${status}`)
+
     } catch (err) {
       await interaction.reply("エラー: " + err.message)
     }
@@ -240,6 +234,8 @@ client.on("interactionCreate", async (interaction) => {
       })
 
       await interaction.reply(`✅ ${name} を追加しました`)
+      await sendLog(`➕ 追加: ${name} / ${genre}`)
+
     } catch (err) {
       await interaction.reply("エラー: " + err.message)
     }
@@ -273,6 +269,8 @@ client.on("interactionCreate", async (interaction) => {
       })
 
       await interaction.reply(`✅ ${name} を削除しました`)
+      await sendLog(`❌ 削除: ${name}`)
+
     } catch (err) {
       await interaction.reply("エラー: " + err.message)
     }
@@ -280,12 +278,12 @@ client.on("interactionCreate", async (interaction) => {
 })
 
 
-// ===== Web API =====
+// ===== 申請 =====
 app.post("/request", async (req, res) => {
   const { name, user, location, owner, className, number, studentName } = req.body
 
   try {
-    const channel = await client.channels.fetch("1503222413096128633")
+    const channel = await client.channels.fetch(REQUEST_CHANNEL_ID)
 
     await channel.send({
       embeds: [{
@@ -303,6 +301,8 @@ app.post("/request", async (req, res) => {
       }]
     })
 
+    await sendLog(`📦申請: ${name} | ${studentName} (${className}-${number})`)
+
     res.json({ ok: true })
 
   } catch (err) {
@@ -311,5 +311,4 @@ app.post("/request", async (req, res) => {
 })
 
 app.listen(3000)
-
 client.login(TOKEN)
