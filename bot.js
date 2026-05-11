@@ -140,7 +140,7 @@ client.on("interactionCreate", async (i) => {
       location,
       owner,
       genre,
-      borrower: null ✅
+      borrower: null
     })
 
     await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
