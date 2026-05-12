@@ -195,6 +195,47 @@ app.post("/request", async (req, res) => {
   const { name, user, className, studentName } = req.body
 
   try {
+
+    // ✅ ① 先にJSON取得
+    const resGit = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
+      headers: { Authorization: `token ${GITHUB_TOKEN}` }
+    })
+
+    const data = await resGit.json()
+    const content = JSON.parse(Buffer.from(data.content, "base64").toString())
+
+    let blocked = false
+
+    // ✅ ② 先にチェック
+    const updated = content.map(item => {
+      if (item.name === name) {
+
+        if (item.borrower !== null) {
+          blocked = true
+          return item
+        }
+
+        return {
+          ...item,
+          status: "pending",
+          borrower: {
+            email: user,
+            name: studentName,
+            className: className
+          }
+        }
+      }
+      return item
+    })
+
+    // ✅ ③ ここで止める（重要）
+    if (blocked) {
+      return res.status(400).json({
+        error: "既に申請されています"
+      })
+    }
+
+    // ✅ ④ ここから送信（安全）
     const ch = await client.channels.fetch(REQUEST_CHANNEL_ID)
 
     await ch.send({
@@ -209,43 +250,7 @@ app.post("/request", async (req, res) => {
 
     await sendLog(`申請 ${name} | ${studentName} ${className}`)
 
-    // JSON更新
-    const resGit = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
-      headers: { Authorization: `token ${GITHUB_TOKEN}` }
-    })
-
-    const data = await resGit.json()
-    const content = JSON.parse(Buffer.from(data.content, "base64").toString())
-
-let blocked = false
-
-const updated = content.map(item => {
-  if (item.name === name) {
-
-    // ✅ ここ追加（既に誰か申請してたら拒否）
-    if (item.borrower !== null) {
-      blocked = true
-      return item
-    }
-
-    return {
-      ...item,
-      status: "pending",
-      borrower: {
-        email: user,
-        name: studentName,
-        className: className
-      }
-    }
-  }
-  return item
-})
-
-    
-if (blocked) {
-  return res.status(400).json({ error: "既に申請されています" })
-}
-
+    // ✅ ⑤ JSON更新
     await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
       method: "PUT",
       headers: {
@@ -260,11 +265,11 @@ if (blocked) {
     })
 
     res.json({ ok: true })
+
   } catch (e) {
     console.error(e)
   }
 })
-
 
 // ===== 取消 =====
 app.post("/cancel", async (req, res) => {
