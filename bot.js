@@ -217,15 +217,34 @@ app.post("/request", async (req, res) => {
     const data = await resGit.json()
     const content = JSON.parse(Buffer.from(data.content, "base64").toString())
 
-    const updated = content.map(item =>
-      item.name === name
-        ? {
-            ...item,
-            status: "pending",
-            borrower: { email: user, name: studentName, className }
-          }
-        : item
-    )
+let blocked = false
+
+const updated = content.map(item => {
+  if (item.name === name) {
+
+    // ✅ ここ追加（既に誰か申請してたら拒否）
+    if (item.borrower !== null) {
+      blocked = true
+      return item
+    }
+
+    return {
+      ...item,
+      status: "pending",
+      borrower: {
+        email: user,
+        name: studentName,
+        className: className
+      }
+    }
+  }
+  return item
+})
+
+    
+if (blocked) {
+  return res.status(400).json({ error: "既に申請されています" })
+}
 
     await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
       method: "PUT",
