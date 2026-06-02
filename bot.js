@@ -157,6 +157,8 @@ client.on("interactionCreate", async (i) => {
   })
 
   await i.reply("✅ 更新完了")
+
+  await sendLog(`✏ 更新 ${name} (status:${status ?? "-"} location:${location ?? "-"} owner:${owner ?? "-"} genre:${genre ?? "-"})`)
 }
   
   // ===== add =====
@@ -196,6 +198,8 @@ client.on("interactionCreate", async (i) => {
     })
 
     await i.reply("✅ 追加完了")
+
+    await sendLog(`➕ 追加 ${name} / ${genre}`)
   }
 
   // ===== delete =====
@@ -225,6 +229,8 @@ client.on("interactionCreate", async (i) => {
     })
 
     await i.reply("✅ 削除完了")
+
+    await sendLog(`❌ 削除 ${name}`)
   }
 })
 
