@@ -132,7 +132,12 @@ client.on("interactionCreate", async (i) => {
         status: status ?? item.status,
         location: location ?? item.location,
         owner: owner ?? item.owner,
-        genre: genre ?? item.genre
+        genre: genre ?? item.genre,
+        borrower:
+    status === "available"
+      ? null
+      : item.borrower
+
       }
     }
     return item
