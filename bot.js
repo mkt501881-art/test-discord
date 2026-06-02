@@ -83,43 +83,49 @@ client.on("interactionCreate", async (i) => {
   }
 
   // ===== set =====
-  if (i.commandName === "set") {
-    const name = i.options.getString("name")
-    const status = i.options.getString("status")
+ if (i.commandName === "set") {
+  const name = i.options.getString("name")
+  const status = i.options.getString("status")
+  const location = i.options.getString("location")
+  const owner = i.options.getString("owner")
+  const genre = i.options.getString("genre")
 
-    const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
-      headers: { Authorization: `token ${GITHUB_TOKEN}` }
-    })
+  const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
+    headers: { Authorization: `token ${GITHUB_TOKEN}` }
+  })
 
-    const data = await res.json()
-    const content = JSON.parse(Buffer.from(data.content, "base64").toString())
+  const data = await res.json()
+  const content = JSON.parse(Buffer.from(data.content, "base64").toString())
 
-    const updated = content.map(item => {
-      if (item.name === name) {
-        return {
-          ...item,
-          status // ✅ borrowerは触らない
-        }
+  const updated = content.map(item => {
+    if (item.name === name) {
+      return {
+        ...item,
+        status: status ?? item.status,
+        location: location ?? item.location,
+        owner: owner ?? item.owner,
+        genre: genre ?? item.genre
       }
-      return item
+    }
+    return item
+  })
+
+  await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
+    method: "PUT",
+    headers: {
+      Authorization: `token ${GITHUB_TOKEN}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      message: `set ${name}`,
+      content: Buffer.from(JSON.stringify(updated, null, 2)).toString("base64"),
+      sha: data.sha
     })
+  })
 
-    await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `token ${GITHUB_TOKEN}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: `set ${name}`,
-        content: Buffer.from(JSON.stringify(updated, null, 2)).toString("base64"),
-        sha: data.sha
-      })
-    })
-
-    await i.reply("✅ 更新完了")
-  }
-
+  await i.reply("✅ 更新完了")
+}
+  
   // ===== add =====
   if (i.commandName === "add") {
     const name = i.options.getString("name")
