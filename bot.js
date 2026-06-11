@@ -86,11 +86,7 @@ new SlashCommandBuilder()
     .addStringOption(o => o.setName("genre").setDescription("ジャンル").setRequired(true))
     .addStringOption(o => o.setName("location").setDescription("保管場所").setRequired(true))
     .addStringOption(o => o.setName("owner").setDescription("出品者").setRequired(true))
-  .addStringOption(o =>
-  o.setName("ownerId")
-   .setDescription("出品者のDiscord ID")
-   .setRequired(true)
-),
+    .addStringOption(o => o.setName("ownerId").setDescription("出品者のDiscord ID").setRequired(true)),
 
   new SlashCommandBuilder()
     .setName("delete")
