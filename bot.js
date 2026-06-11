@@ -85,7 +85,12 @@ new SlashCommandBuilder()
     .addStringOption(o => o.setName("name").setDescription("文庫名").setRequired(true))
     .addStringOption(o => o.setName("genre").setDescription("ジャンル").setRequired(true))
     .addStringOption(o => o.setName("location").setDescription("保管場所").setRequired(true))
-    .addStringOption(o => o.setName("owner").setDescription("出品者").setRequired(true)),
+    .addStringOption(o => o.setName("owner").setDescription("出品者").setRequired(true))
+  .addStringOption(o =>
+  o.setName("ownerId")
+   .setDescription("出品者のDiscord ID")
+   .setRequired(true)
+),
 
   new SlashCommandBuilder()
     .setName("delete")
@@ -167,6 +172,7 @@ client.on("interactionCreate", async (i) => {
     const genre = i.options.getString("genre")
     const location = i.options.getString("location")
     const owner = i.options.getString("owner")
+    const ownerId = i.options.getString("ownerId")
 
     const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
       headers: { Authorization: `token ${GITHUB_TOKEN}` }
@@ -180,6 +186,7 @@ client.on("interactionCreate", async (i) => {
       status: "available",
       location,
       owner,
+      ownerId,
       genre,
       borrower: null
     })
@@ -282,16 +289,19 @@ app.post("/request", async (req, res) => {
 
     // ✅ ④ ここから送信（安全）
     const ch = await client.channels.fetch(REQUEST_CHANNEL_ID)
+    const target = content.find(i => i.name === name)
+    const ownerId = target?.ownerId
 
-    await ch.send({
-      embeds: [{
-        title: "📦 貸し出し申請",
-        description: name,
-        fields: [
-          { name: "利用者", value: `${studentName} ${className}` }
-        ]
-      }]
-    })
+  await ch.send({
+  content: ownerId ? `<@${ownerId}>` : "",
+  embeds: [{
+    title: "📦 貸し出し申請",
+    description: name,
+    fields: [
+      { name: "利用者", value: `${studentName} ${className}` }
+    ]
+  }]
+})
 
     await sendLog(`申請 ${name} | ${studentName} ${className}`)
 
