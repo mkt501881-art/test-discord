@@ -53,16 +53,16 @@ function checkRole(i) {
 
 const commands = [
   new SlashCommandBuilder().setName("set").setDescription("更新")
-    .addStringOption(o=>o.setName("name").setRequired(true))
+    .addStringOption(o=>o.setName("name").setDescription("文庫名").setRequired(true))
     .addStringOption(o=>o.setName("status")),
   new SlashCommandBuilder().setName("add").setDescription("追加")
-    .addStringOption(o=>o.setName("name").setRequired(true))
-    .addStringOption(o=>o.setName("genre").setRequired(true))
-    .addStringOption(o=>o.setName("location").setRequired(true))
-    .addStringOption(o=>o.setName("owner").setRequired(true))
-    .addStringOption(o=>o.setName("owner_id").setRequired(true)),
+    .addStringOption(o=>o.setName("name").setDescription("文庫名").setRequired(true))
+    .addStringOption(o=>o.setName("genre").setDescription("ジャンル").setRequired(true))
+    .addStringOption(o=>o.setName("location").setDescription("保管場所").setRequired(true))
+    .addStringOption(o=>o.setName("owner").setDescription("出品者").setRequired(true))
+    .addStringOption(o=>o.setName("owner_id").setDescription("保管者のDiscordのID").setRequired(true)),
   new SlashCommandBuilder().setName("delete").setDescription("削除")
-    .addStringOption(o=>o.setName("name").setRequired(true))
+    .addStringOption(o=>o.setName("name").setDescription("文庫名").setRequired(true))
 ].map(c=>c.toJSON())
 
 const rest = new REST({ version:"10" }).setToken(TOKEN)
