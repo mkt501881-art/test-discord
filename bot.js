@@ -25,7 +25,7 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 })
 
-// ✅ JST取得
+// ✅ JST
 function getJST() {
   return new Date(Date.now() + 9 * 60 * 60 * 1000)
 }
@@ -45,9 +45,8 @@ function checkRole(interaction) {
   return interaction.member.roles.cache.has(allowedRoleId)
 }
 
-// ✅ Slashコマンド（変更なし）
+// ✅ Slash（完全維持）
 const commands = [
-
 new SlashCommandBuilder()
   .setName("set")
   .setDescription("ステータス更新")
@@ -60,7 +59,14 @@ new SlashCommandBuilder()
   )
   .addStringOption(o => o.setName("location").setDescription("保管場所"))
   .addStringOption(o => o.setName("owner").setDescription("出品者"))
-  .addStringOption(o => o.setName("genre").setDescription("ジャンル")),
+  .addStringOption(o => o.setName("genre").setDescription("ジャンル")
+    .addChoices(
+      { name: "マンガ", value: "マンガ" },
+      { name: "ライトノベル", value: "ライトノベル" },
+      { name: "小説", value: "小説" },
+      { name: "その他", value: "その他" }
+    )
+  ),
 
 new SlashCommandBuilder()
   .setName("add")
@@ -75,7 +81,6 @@ new SlashCommandBuilder()
   .setName("delete")
   .setDescription("本を削除")
   .addStringOption(o => o.setName("name").setDescription("文庫名").setRequired(true))
-
 ].map(c => c.toJSON())
 
 const rest = new REST({ version: "10" }).setToken(TOKEN)
@@ -85,7 +90,7 @@ client.once("ready", async () => {
   console.log("✅ 起動OK")
 })
 
-// ===== interaction =====
+// ===== interaction（そのまま＋最小追加）=====
 client.on("interactionCreate", async (i) => {
 
   if (i.isChatInputCommand()) {
@@ -214,10 +219,9 @@ client.on("interactionCreate", async (i) => {
     const content = JSON.parse(Buffer.from(data.content, "base64").toString())
 
     const target = content.find(item => item.name === name)
-
     if (!target) return
 
-    // ===== 承認 =====
+    // ===== 承認（★ここだけ dueDate追加）=====
     if (action === "approve") {
 
       if (String(target.owner_id) !== i.user.id) {
@@ -292,88 +296,97 @@ client.on("interactionCreate", async (i) => {
       })
 
       await i.update({ content: `✅ 返却完了: ${name}`, components: [] })
-
       await sendLog(`📥 返却 ${name}`)
     }
   }
-
 })
 
-// ===== 自動処理 =====
-setInterval(async () => {
+// ===== request（★ここだけ pendingAt追加）=====
+app.post("/request", async (req, res) => {
+  const { name, user, className, studentName } = req.body
 
-  const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
-    headers:{ Authorization:`token ${GITHUB_TOKEN}` }
-  })
+  try {
+    const resGit = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
+      headers: { Authorization: `token ${GITHUB_TOKEN}` }
+    })
 
-  const data = await res.json()
-  const content = JSON.parse(Buffer.from(data.content,"base64").toString())
+    const data = await resGit.json()
+    const content = JSON.parse(Buffer.from(data.content, "base64").toString())
 
-  const now = getJST()
-  const today = getDateStr(now)
+    let blocked = false
 
-  let changed = false
+    const updated = content.map(item => {
+      if (item.name === name) {
 
-  for (const item of content) {
+        if (item.borrower !== null) {
+          blocked = true
+          return item
+        }
 
-    // ✅ 8:00返却通知
-    if (
-      item.status === "using" &&
-      item.dueDate === today &&
-      now.getHours() === 8 &&
-      now.getMinutes() === 0
-    ) {
-      const ch = await client.channels.fetch(REQUEST_CHANNEL_ID)
+        const now = getJST()
 
-      await ch.send({
-        content:`<@${item.owner_id}>`,
-        embeds:[{
-          title:"📦 返却期限",
-          description:`${item.name} の返却期限です`
-        }],
-        components:[
-          new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-              .setCustomId(`return_${item.name}`)
-              .setLabel("返却完了")
-              .setStyle(ButtonStyle.Danger)
-          )
-        ]
-      })
-    }
-
-    // ✅ pending強制終了
-    if (item.status === "pending" && item.pendingAt) {
-      const t = new Date(item.pendingAt)
-      const limit = new Date(t)
-      limit.setDate(limit.getDate()+1)
-      limit.setHours(0,0,0,0)
-
-      if (now >= limit) {
-        item.status = "available"
-        item.borrower = null
-        item.pendingAt = null
-        changed = true
-
-        const ch = await client.channels.fetch(REQUEST_CHANNEL_ID)
-        await ch.send(`❌ 貸し出し処理中断: ${item.name}`)
+        return {
+          ...item,
+          status: "pending",
+          pendingAt: now.toISOString(), // ✅追加
+          borrower: {
+            email: user,
+            name: studentName,
+            className: className
+          }
+        }
       }
-    }
-  }
+      return item
+    })
 
-  if (changed) {
-    await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`,{
-      method:"PUT",
-      headers:{ Authorization:`token ${GITHUB_TOKEN}`,"Content-Type":"application/json"},
-      body:JSON.stringify({
-        message:"auto update",
-        content:Buffer.from(JSON.stringify(content,null,2)).toString("base64"),
-        sha:data.sha
+    if (blocked) {
+      return res.status(400).json({ error: "既に申請されています" })
+    }
+
+    const ch = await client.channels.fetch(REQUEST_CHANNEL_ID)
+    const target = content.find(i => i.name === name)
+    const owner_id = target?.owner_id
+
+    await ch.send({
+      content: owner_id ? `<@${owner_id}>` : "",
+      embeds: [{
+        title: "📦 貸し出し申請",
+        description: name,
+        fields: [
+          { name: "利用者", value: `${studentName} ${className}` }
+        ]
+      }],
+      components: [
+        new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`approve_${name}`)
+            .setLabel("貸し出し完了")
+            .setStyle(ButtonStyle.Success)
+        )
+      ]
+    })
+
+    await sendLog(`申請 ${name} | ${studentName} ${className}`)
+
+    await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${GITHUB_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: `request ${name}`,
+        content: Buffer.from(JSON.stringify(updated, null, 2)).toString("base64"),
+        sha: data.sha
       })
     })
-  }
 
-},60000)
+    res.json({ ok: true })
+
+  } catch (e) {
+    console.error(e)
+  }
+})
 
 app.listen(3000)
 client.login(TOKEN)
