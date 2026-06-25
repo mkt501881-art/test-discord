@@ -1,7 +1,8 @@
 require("dotenv").config()
 
-const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require("discord.js")
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js")
+const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder,
+  ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js")
+
 const fetch = require("node-fetch")
 const express = require("express")
 const cors = require("cors")
@@ -13,6 +14,7 @@ app.use(express.json())
 const TOKEN = process.env.DISCORD_TOKEN
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN
 const CLIENT_ID = process.env.CLIENT_ID
+const LOAN_DAYS = Number(process.env.LOAN_DAYS || 3)
 
 const REPO = "mkt501881-art/status"
 const FILE_PATH = "status.json"
@@ -24,76 +26,40 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 })
 
-// ✅ ログ
+// ===== 共通 =====
+function getJST() {
+  return new Date(Date.now() + 9 * 60 * 60 * 1000)
+}
+
+function getDateStr(date) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, "0")
+  const d = String(date.getDate()).padStart(2, "0")
+  return `${y}-${m}-${d}`
+}
+
 async function sendLog(msg) {
   const ch = await client.channels.fetch(LOG_CHANNEL_ID)
   await ch.send(msg)
 }
 
-// ✅ 権限
-function checkRole(interaction) {
-  const allowedRoleId = "1502839785834811422"
-  return interaction.member.roles.cache.has(allowedRoleId)
+function checkRole(i) {
+  return i.member.roles.cache.has("1502839785834811422")
 }
 
-
-// ✅ Slashコマンド
+// ===== Slash =====
 const commands = [
-
-new SlashCommandBuilder()
-  .setName("set")
-  .setDescription("ステータス更新")
-
-  .addStringOption(o =>
-    o.setName("name")
-     .setDescription("文庫名")
-     .setRequired(true)
-  )
-
-  .addStringOption(o =>
-    o.setName("status")
-     .setDescription("状態")
-     .addChoices(
-       { name: "貸出可", value: "available" },
-       { name: "貸出中", value: "using" }
-     )
-  )
-
-  .addStringOption(o =>
-    o.setName("location")
-     .setDescription("保管場所")
-  )
-
-  .addStringOption(o =>
-    o.setName("owner")
-     .setDescription("出品者")
-  )
-
-  .addStringOption(o =>
-    o.setName("genre")
-     .setDescription("ジャンル")
-     .addChoices(
-       { name: "マンガ", value: "マンガ" },
-       { name: "ライトノベル", value: "ライトノベル" },
-       { name: "小説", value: "小説" },
-       { name: "その他", value: "その他" }
-     )
-  ),
-  
   new SlashCommandBuilder()
     .setName("add")
-    .setDescription("本を追加")
-    .addStringOption(o => o.setName("name").setDescription("文庫名").setRequired(true))
-    .addStringOption(o => o.setName("genre").setDescription("ジャンル").setRequired(true))
-    .addStringOption(o => o.setName("location").setDescription("保管場所").setRequired(true))
-    .addStringOption(o => o.setName("owner").setDescription("出品者").setRequired(true))
-    .addStringOption(o => o.setName("owner_id").setDescription("出品者のDiscord ID").setRequired(true)),
+    .addStringOption(o=>o.setName("name").setRequired(true))
+    .addStringOption(o=>o.setName("genre").setRequired(true))
+    .addStringOption(o=>o.setName("location").setRequired(true))
+    .addStringOption(o=>o.setName("owner").setRequired(true))
+    .addStringOption(o=>o.setName("owner_id").setRequired(true)),
 
   new SlashCommandBuilder()
     .setName("delete")
-    .setDescription("本を削除")
-    .addStringOption(o => o.setName("name").setDescription("文庫名").setRequired(true))
-
+    .addStringOption(o=>o.setName("name").setRequired(true))
 ].map(c => c.toJSON())
 
 const rest = new REST({ version: "10" }).setToken(TOKEN)
@@ -103,62 +69,15 @@ client.once("ready", async () => {
   console.log("✅ 起動OK")
 })
 
+// ===== interaction =====
 client.on("interactionCreate", async (i) => {
 
-  // ===== Slashコマンド =====
   if (i.isChatInputCommand()) {
 
     if (!checkRole(i)) {
       return i.reply({ content: "❌ 権限なし", ephemeral: true })
     }
 
-    // ===== set =====
-    if (i.commandName === "set") {
-      const name = i.options.getString("name")
-      const status = i.options.getString("status")
-      const location = i.options.getString("location")
-      const owner = i.options.getString("owner")
-      const genre = i.options.getString("genre")
-
-      const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
-        headers: { Authorization: `token ${GITHUB_TOKEN}` }
-      })
-
-      const data = await res.json()
-      const content = JSON.parse(Buffer.from(data.content, "base64").toString())
-
-      const updated = content.map(item => {
-        if (item.name === name) {
-          return {
-            ...item,
-            status: status ?? item.status,
-            location: location ?? item.location,
-            owner: owner ?? item.owner,
-            genre: genre ?? item.genre,
-            borrower: status === "available" ? null : item.borrower
-          }
-        }
-        return item
-      })
-
-      await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `token ${GITHUB_TOKEN}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          message: `set ${name}`,
-          content: Buffer.from(JSON.stringify(updated, null, 2)).toString("base64"),
-          sha: data.sha
-        })
-      })
-
-      await i.reply("✅ 更新完了")
-      await sendLog(`✏ 更新 ${name}`)
-    }
-
-    // ===== add =====
     if (i.commandName === "add") {
       const name = i.options.getString("name")
       const genre = i.options.getString("genre")
@@ -180,7 +99,9 @@ client.on("interactionCreate", async (i) => {
         owner,
         owner_id,
         genre,
-        borrower: null
+        borrower: null,
+        dueDate: null,
+        pendingAt: null
       })
 
       await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
@@ -197,10 +118,8 @@ client.on("interactionCreate", async (i) => {
       })
 
       await i.reply("✅ 追加完了")
-      await sendLog(`➕ 追加 ${name}`)
     }
 
-    // ===== delete =====
     if (i.commandName === "delete") {
       const name = i.options.getString("name")
 
@@ -211,7 +130,7 @@ client.on("interactionCreate", async (i) => {
       const data = await res.json()
       const content = JSON.parse(Buffer.from(data.content, "base64").toString())
 
-      const updated = content.filter(item => item.name !== name)
+      const updated = content.filter(i => i.name !== name)
 
       await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
         method: "PUT",
@@ -226,37 +145,41 @@ client.on("interactionCreate", async (i) => {
         })
       })
 
-      await i.reply("✅ 削除完了")
-      await sendLog(`❌ 削除 ${name}`)
+      await i.reply("✅ 削除")
     }
   }
 
   // ===== ボタン =====
   if (i.isButton()) {
 
-    const [action, name] = i.customId.split("_")
+    const [type, name] = i.customId.split("_")
 
-    if (action === "approve") {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
+      headers: { Authorization: `token ${GITHUB_TOKEN}` }
+    })
 
-      const resGit = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
-        headers: { Authorization: `token ${GITHUB_TOKEN}` }
-      })
+    const data = await res.json()
+    const content = JSON.parse(Buffer.from(data.content, "base64").toString())
 
-      const data = await resGit.json()
-      const content = JSON.parse(Buffer.from(data.content, "base64").toString())
+    const target = content.find(x => x.name === name)
 
-      const target = content.find(item => item.name === name)
+    if (!target) return
 
-      if (!target || String(target.owner_id) !== i.user.id) {
-        return i.reply({ content: "❌ あなたは承認できません", ephemeral: true })
-      }
+    // ===== 承認 =====
+    if (type === "approve") {
 
-      const updated = content.map(item => {
-        if (item.name === name) {
-          return { ...item, status: "using" }
-        }
-        return item
-      })
+      if (String(target.owner_id) !== i.user.id)
+        return i.reply({ content: "❌ 権限なし", ephemeral: true })
+
+      const now = getJST()
+      const due = new Date(now)
+      due.setDate(due.getDate() + LOAN_DAYS)
+
+      const updated = content.map(x =>
+        x.name === name
+          ? { ...x, status: "using", dueDate: getDateStr(due), pendingAt: null }
+          : x
+      )
 
       await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
         method: "PUT",
@@ -272,112 +195,48 @@ client.on("interactionCreate", async (i) => {
       })
 
       await i.update({
-        content: `✅ 貸し出し完了: ${name}`,
-        embeds: [],
-        components: []
+        content: `✅ 貸し出し中: ${name}`,
+        components: [
+          new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId(`return_${name}`)
+              .setLabel("返却完了")
+              .setStyle(ButtonStyle.Danger)
+          )
+        ]
+      })
+    }
+
+    // ===== 返却 =====
+    if (type === "return") {
+
+      const updated = content.map(x =>
+        x.name === name
+          ? { ...x, status: "available", borrower: null, dueDate: null }
+          : x
+      )
+
+      await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `token ${GITHUB_TOKEN}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          message: `return ${name}`,
+          content: Buffer.from(JSON.stringify(updated, null, 2)).toString("base64"),
+          sha: data.sha
+        })
       })
 
-      await sendLog(`✅ 承認 ${name}`)
+      await i.update({ content: `✅ 返却完了: ${name}`, components: [] })
     }
   }
-
 })
 
 // ===== 申請 =====
 app.post("/request", async (req, res) => {
   const { name, user, className, studentName } = req.body
-
-  try {
-
-    // ✅ ① 先にJSON取得
-    const resGit = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
-      headers: { Authorization: `token ${GITHUB_TOKEN}` }
-    })
-
-    const data = await resGit.json()
-    const content = JSON.parse(Buffer.from(data.content, "base64").toString())
-
-    let blocked = false
-
-    // ✅ ② 先にチェック
-    const updated = content.map(item => {
-      if (item.name === name) {
-
-        if (item.borrower !== null) {
-          blocked = true
-          return item
-        }
-
-        return {
-          ...item,
-          status: "pending",
-          borrower: {
-            email: user,
-            name: studentName,
-            className: className
-          }
-        }
-      }
-      return item
-    })
-
-    // ✅ ③ ここで止める（重要）
-    if (blocked) {
-      return res.status(400).json({
-        error: "既に申請されています"
-      })
-    }
-
-    // ✅ ④ ここから送信（安全）
-    const ch = await client.channels.fetch(REQUEST_CHANNEL_ID)
-    const target = content.find(i => i.name === name)
-    const owner_id = target?.owner_id
-
-await ch.send({
-  content: owner_id ? `<@${owner_id}>` : "",
-  embeds: [{
-    title: "📦 貸し出し申請",
-    description: name,
-    fields: [
-      { name: "利用者", value: `${studentName} ${className}` }
-    ]
-  }],
-  components: [
-    new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`approve_${name}`)
-        .setLabel("貸し出し完了")
-        .setStyle(ButtonStyle.Success)
-    )
-  ]
-})
-
-    await sendLog(`申請 ${name} | ${studentName} ${className}`)
-
-    // ✅ ⑤ JSON更新
-    await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `token ${GITHUB_TOKEN}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: `request ${name}`,
-        content: Buffer.from(JSON.stringify(updated, null, 2)).toString("base64"),
-        sha: data.sha
-      })
-    })
-
-    res.json({ ok: true })
-
-  } catch (e) {
-    console.error(e)
-  }
-})
-
-// ===== 取消 =====
-app.post("/cancel", async (req, res) => {
-  const { name, user } = req.body
 
   const resGit = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
     headers: { Authorization: `token ${GITHUB_TOKEN}` }
@@ -386,22 +245,18 @@ app.post("/cancel", async (req, res) => {
   const data = await resGit.json()
   const content = JSON.parse(Buffer.from(data.content, "base64").toString())
 
-  let studentName = ""
-  let className = ""
+  const now = getJST()
 
-  const updated = content.map(item => {
-    if (item.name === name && item.borrower?.email === user) {
-      studentName = item.borrower.name
-      className = item.borrower.className
-      return { ...item, status: "available", borrower: null }
-    }
-    return item
-  })
-
-  const ch = await client.channels.fetch(REQUEST_CHANNEL_ID)
-  await ch.send(`↩ 申請取消: ${name} / ${studentName}`)
-
-  await sendLog(`申請撤回 ${name} | ${studentName} ${className}`)
+  const updated = content.map(item =>
+    item.name === name
+      ? {
+          ...item,
+          status: "pending",
+          pendingAt: now.toISOString(),
+          borrower: { name: studentName }
+        }
+      : item
+  )
 
   await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
     method: "PUT",
@@ -410,14 +265,87 @@ app.post("/cancel", async (req, res) => {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      message: `cancel ${name}`,
+      message: `request ${name}`,
       content: Buffer.from(JSON.stringify(updated, null, 2)).toString("base64"),
       sha: data.sha
     })
   })
 
+  const target = content.find(i => i.name === name)
+
+  const ch = await client.channels.fetch(REQUEST_CHANNEL_ID)
+  await ch.send({
+    content: `<@${target.owner_id}>`,
+    embeds: [{ title: "貸し出し申請", description: name }],
+    components: [
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`approve_${name}`)
+          .setLabel("貸し出し完了")
+          .setStyle(ButtonStyle.Success)
+      )
+    ]
+  })
+
   res.json({ ok: true })
 })
+
+// ===== 自動処理 =====
+setInterval(async () => {
+
+  const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
+    headers: { Authorization: `token ${GITHUB_TOKEN}` }
+  })
+
+  const data = await res.json()
+  const content = JSON.parse(Buffer.from(data.content, "base64").toString())
+
+  const now = getJST()
+  const today = getDateStr(now)
+
+  let changed = false
+
+  const updated = content.map(item => {
+
+    // 期限通知
+    if (item.status === "using" && item.dueDate === today && now.getHours() === 8) {
+      client.channels.fetch(REQUEST_CHANNEL_ID).then(ch => {
+        ch.send(`<@${item.owner_id}> 🔔返却期限: ${item.name}`)
+      })
+    }
+
+    // pending強制解除
+    if (item.status === "pending" && item.pendingAt) {
+      const t = new Date(item.pendingAt)
+      const limit = new Date(t)
+      limit.setDate(limit.getDate() + 1)
+      limit.setHours(0, 0, 0, 0)
+
+      if (now >= limit) {
+        changed = true
+        return { ...item, status: "available", borrower: null, pendingAt: null }
+      }
+    }
+
+    return item
+  })
+
+  if (changed) {
+    await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${GITHUB_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: "auto update",
+        content: Buffer.from(JSON.stringify(updated, null, 2)).toString("base64"),
+        sha: data.sha
+      })
+    })
+  }
+
+}, 60000)
 
 app.listen(3000)
 client.login(TOKEN)
