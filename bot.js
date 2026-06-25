@@ -374,7 +374,6 @@ setInterval(async () => {
   }
 
 },60000)
-``
 
 app.listen(3000)
 client.login(TOKEN)
