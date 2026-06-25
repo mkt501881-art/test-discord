@@ -54,7 +54,7 @@ function checkRole(i) {
 const commands = [
   new SlashCommandBuilder().setName("set").setDescription("更新")
     .addStringOption(o=>o.setName("name").setDescription("文庫名").setRequired(true))
-    .addStringOption(o=>o.setName("status")),
+    .addStringOption(o=>o.setName("status").setDescription("状態")),
   new SlashCommandBuilder().setName("add").setDescription("追加")
     .addStringOption(o=>o.setName("name").setDescription("文庫名").setRequired(true))
     .addStringOption(o=>o.setName("genre").setDescription("ジャンル").setRequired(true))
